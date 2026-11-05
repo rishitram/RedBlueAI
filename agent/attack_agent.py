@@ -1,5 +1,5 @@
 """
-attack_agent.py  --  the agent loop.  >>> THIS IS THE FILE YOU COMPLETE. <<<
+attack_agent.py  --  the red-team scanning agent.
 
 The idea of an "agent" is simple:
     1. We give the model a job (the system prompt) and a list of tools it can use.
@@ -7,12 +7,8 @@ The idea of an "agent" is simple:
     3. Our code runs that tool and feeds the result back to the model.
     4. Repeat until the model says it's done, or we hit a safety step limit.
 
-The plumbing (the loop, the JSON parsing, the tool dispatch, the printing) is
-already written for you below. Your job is to fill in the parts marked
-`TODO`:
-    - Write the SYSTEM PROMPT that explains the job and the JSON format.
-    - Make the agent report the EXACT vulnerable file and line number.
-    - Add the step where the agent CONFIRMS the bug against the running app.
+The agent inspects the practice app, reports the exact vulnerable file and
+line number, and confirms the SQL injection against the running local app.
 
 Run the target app first (see the README), then run this file.
 """
@@ -34,7 +30,7 @@ DEFAULT_SCAN_DIR = "target_app"
 
 
 # ---------------------------------------------------------------------------
-#  TODO #1 -- THE SYSTEM PROMPT
+#  SYSTEM PROMPT
 # ---------------------------------------------------------------------------
 # The system prompt is the model's instructions. Write it so the model knows:
 #
@@ -54,16 +50,36 @@ DEFAULT_SCAN_DIR = "target_app"
 #           boundary, also enforced in code):
 #             "You may only look inside the directory you were given. Do not
 #              try to access parent folders or other directories."
-#   * TODO #2: it must report the EXACT file and line number of the bug.
-#   * TODO #3: before finishing, it must CONFIRM the bug by sending a real
+#   * It must report the EXACT file and line number of the bug.
+#   * Before finishing, it must CONFIRM the bug by sending a real
 #     request to the local app (e.g. an " ' OR '1'='1 " style login) and
 #     checking the response proves the injection worked.
 #
 # Tip: keep it short and concrete. Show the model one example JSON action.
 SYSTEM_PROMPT = """
-TODO: Write the system prompt here. See the notes above for everything it
-needs to cover (the job, the tool JSON formats, the one-JSON-per-reply rule,
-reporting the exact file + line, and confirming the exploit live).
+You are a security code-scanning agent. Find the SQL injection vulnerability
+in the practice app, confirm it against the running local app, and report the
+exact vulnerable file and line number.
+
+You may only look inside the directory you were given. Do not try to access parent folders or other directories.
+
+On every turn, reply with EXACTLY ONE JSON object and nothing else: no
+markdown, code fences, or surrounding explanation. Use one of these actions:
+
+{"action": "list_files", "root": "."}
+{"action": "read_file", "root": ".", "path": "app.py"}
+{"action": "send_request", "method": "POST", "path": "/login", "data": {"username": "nobody", "password": "' OR '1'='1"}}
+{"action": "finish", "answer": "Your final report"}
+
+Use list_files and read_file to inspect the source. Paths must stay inside the
+given directory. The read_file result includes line numbers; cite the exact
+file and line number where user input is concatenated into SQL. Before
+finishing, send a POST request to /login using a made-up username and the
+password payload "' OR '1'='1". Check the response: a successful HTTP status
+and a JSON body with "ok": true confirms the injection. Do not claim it was
+confirmed if the response does not show success. Finish with the vulnerable
+file and line number, a concise explanation, and the request/result that
+confirmed or failed to confirm the issue.
 """
 
 

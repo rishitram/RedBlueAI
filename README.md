@@ -25,17 +25,18 @@ red-vs-blue-starter/
   target_app/
     app.py            # the vulnerable practice app (the "blue" target)
   agent/
-    llm.py            # talks to the AI model            (done for you)
-    tools.py          # list_files / read_file / send_request (done for you)
-    attack_agent.py   # the agent loop (the "red" attacker) -- YOU complete this
+    llm.py            # talks to the AI model
+    tools.py          # list_files / read_file / write_file / send_request
+    attack_agent.py   # the "red team" scanner
+    defense_agent.py  # the "blue team" fixer
+    agent_loop.py     # a separate example of a complete agent loop
 ```
 
 - **`target_app/app.py`** — a tiny Flask + SQLite app with a login route and a
   product search route. Both build their database queries by gluing your input
   straight into SQL, which is exactly how SQL injection happens.
-- **`agent/`** — the AI attacker. `llm.py` and `tools.py` are finished.
-  `attack_agent.py` is a working loop with the core logic left as `TODO`s for
-  you to fill in.
+- **`agent/`** — contains the local-model client, bounded tools, a scanner, a
+  fixer, and a separate agent-loop example.
 
 ---
 
@@ -143,39 +144,22 @@ python agent/attack_agent.py agent
 The agent prints which directory it's scanning, then every step so you can
 watch it think: which tool it chose, what the tool returned, and its report.
 
-> Until you complete the `TODO`s in `attack_agent.py`, the agent won't have
-> real instructions yet — that's the point! Read the next section.
+The scanner is ready to use. It reads source only from the selected scan
+directory and sends HTTP requests only to the local practice app.
 
 ---
 
-## Your mission (the three checkpoints)
+## Run the attack agent
 
-Open **`agent/attack_agent.py`**. The loop already works; you fill in the three
-`TODO`s. Aim for these checkpoints in order:
-
-### ✅ Minimum — setup working
-Both terminals run without errors. The app responds at `http://127.0.0.1:5000`,
-and the agent starts, calls the model, and prints steps. (It won't find the bug
-yet — that's fine.)
-
-### 🎯 Target — the agent names the vulnerable line
-Complete the **system prompt (TODO #1)** and the **exact file + line reporting
-(TODO #2)** so the agent uses `list_files` and `read_file`, then finishes with
-a report naming the precise file and line number of a SQL injection, e.g.
-`target_app/app.py` around the `/login` query.
-
-### 🏆 Stretch — the agent confirms the exploit locally
-Complete **TODO #3** so that, before finishing, the agent uses `send_request`
-to actually attack the running app — for example logging in with a payload like
-`' OR '1'='1` — and checks the response to prove the injection really works.
+Run **`agent/attack_agent.py`** to scan the practice app, report the exact
+vulnerable line, and confirm the SQL injection with a request to the local app.
 
 ---
 
 ## Build the defense agent (red team → blue team)
 
-Once the attack agent can find the bug, build the **defense agent** to fix it.
-Open **`agent/defense_agent.py`** and fill in its two `TODO`s (the system prompt,
-and the confirm-the-fix step). Its tools are just `read_file` and `write_file`.
+Run **`agent/defense_agent.py`** to build and verify a fixed copy of the app.
+Its file tools are `read_file` and `write_file`.
 
 The goal: it reads the vulnerable file, rewrites the unsafe SQL using
 **parameterized queries** (the `?` placeholder style already in `seed_database`),

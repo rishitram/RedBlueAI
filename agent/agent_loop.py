@@ -1,11 +1,12 @@
 """
-agent_loop.py  --  build-your-own agent loop.  >>> THIS TIME YOU WRITE THE CODE. <<<
+agent_loop.py  --  a complete build-your-own agent loop example.
 
 In the earlier exercises the loop was written FOR you and you only wrote the
 prompt. Here it's the other way around: the SYSTEM_PROMPT below is complete
 and working -- YOU write the two missing pieces of code.
 
-The model replies in a NEW format (so you can't paste in an old loop):
+The model replies in a distinct format (so the earlier loops cannot be pasted
+in unchanged):
 
     {"tool": "<name>", "args": {<arguments>}}
 
@@ -16,11 +17,7 @@ with these tools:
     send_request  args {"method", "path", "data"}    HTTP request to the local app
     done          args {"report": ...}               stop and give the final report
 
-Your two jobs (the only TODOs in this file):
-    TODO #1: run_tool(action, scan_dir) -- take one parsed action and call the
-             matching function in tools.py.
-    TODO #2: the main loop -- talk to the model, parse its JSON, run the tool,
-             stop at "done", enforce the step limit.
+This file demonstrates both tool dispatch and the complete bounded agent loop.
 
 Run the target app first (see the README), then run this file.
 """
@@ -99,7 +96,7 @@ def run_tool(action, scan_dir):
     the model as the next message).
     """
     # -----------------------------------------------------------------------
-    # TODO #1 -- TOOL DISPATCH
+    # TOOL DISPATCH
     #
     # `action` is the parsed JSON from the model, e.g.
     #     {"tool": "read_file", "args": {"path": "app.py"}}
@@ -122,6 +119,29 @@ def run_tool(action, scan_dir):
     #     can correct itself on the next turn.
     #   * Whatever branch you take, return a STRING.
     # -----------------------------------------------------------------------
+    name = action.get("tool")
+    args = action.get("args", {})
+    if not isinstance(args, dict):
+        return "ERROR: tool arguments must be a JSON object."
+
+    if name == "list_files":
+        files = tools.list_files(scan_dir, ".")
+        if isinstance(files, str):
+            return files
+        return "Files found:\n" + "\n".join(files)
+
+    if name == "read_file":
+        return tools.read_file(scan_dir, args.get("path", ""))
+
+    if name == "send_request":
+        result = tools.send_request(
+            args.get("method", "GET"),
+            args.get("path", "/"),
+            args.get("data"),
+        )
+        return json.dumps(result)
+
+    return "ERROR: unknown tool '" + str(name) + "'."
 
 
 def main(scan_dir):
@@ -143,7 +163,7 @@ def main(scan_dir):
     ]
 
     # -----------------------------------------------------------------------
-    # TODO #2 -- THE AGENT LOOP
+    # THE AGENT LOOP
     #
     # This is the heart of the exercise. Repeat at most MAX_STEPS times:
     #
@@ -165,6 +185,50 @@ def main(scan_dir):
     # If the loop finishes all MAX_STEPS without a "done", print a line saying
     # the step limit was reached.
     # -----------------------------------------------------------------------
+    for step in range(1, MAX_STEPS + 1):
+        print("\n" + "=" * 60)
+        print("STEP " + str(step))
+        print("=" * 60)
+
+        reply = chat(messages)
+        print("Agent says:\n" + reply)
+        messages.append({"role": "assistant", "content": reply})
+
+        try:
+            action = json.loads(reply)
+        except json.JSONDecodeError:
+            feedback = (
+                "Your last reply was not valid JSON. Reply with exactly one "
+                'JSON object like {"tool": "...", "args": {...}}, and nothing else.'
+            )
+            print("\n[parser] " + feedback)
+            messages.append({"role": "user", "content": feedback})
+            continue
+
+        if not isinstance(action, dict):
+            feedback = (
+                "Your last reply must be a JSON object with a 'tool' name "
+                "and an 'args' object. Reply with exactly one such object."
+            )
+            print("\n[parser] " + feedback)
+            messages.append({"role": "user", "content": feedback})
+            continue
+
+        if action.get("tool") == "done":
+            args = action.get("args", {})
+            if not isinstance(args, dict):
+                args = {}
+            print("\n" + "*" * 60)
+            print("FINAL REPORT:")
+            print(args.get("report", "(no report provided)"))
+            print("*" * 60)
+            return
+
+        result = run_tool(action, scan_dir)
+        print("\nTool result:\n" + result)
+        messages.append({"role": "user", "content": "Tool result:\n" + result})
+
+    print("\nReached the step limit (" + str(MAX_STEPS) + ") without finishing.")
 
 
 if __name__ == "__main__":

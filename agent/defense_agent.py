@@ -1,12 +1,10 @@
 """
-defense_agent.py  --  the "blue team" agent loop.  >>> YOU COMPLETE THIS. <<<
+defense_agent.py  --  the "blue team" remediation agent.
 
 Where the attack agent FINDS the bug, the defense agent FIXES it. It works the
-same way (the loop, the one-JSON-action-per-turn format, the step limit, the
-printing are all written for you). Your job is to fill in the parts marked
-`TODO`:
-    - Write the SYSTEM PROMPT that explains the job and the JSON format.
-    - Add the step where the agent CONFIRMS its own fix.
+same way (the loop, the one-JSON-action-per-turn format, the step limit, and
+the printing are all implemented). It confirms the fix by reading the
+generated app_fixed.py back and checking the parameterized queries.
 
 Its job: read the vulnerable file, rewrite the dangerous SQL using parameterized
 queries (the "?" placeholder style already used in seed_database), and WRITE the
@@ -32,7 +30,7 @@ DEFAULT_SCAN_DIR = "target_app"
 
 
 # ---------------------------------------------------------------------------
-#  TODO #1 -- THE SYSTEM PROMPT
+#  SYSTEM PROMPT
 # ---------------------------------------------------------------------------
 # The system prompt is the model's instructions. Write it so the model knows:
 #
@@ -54,7 +52,7 @@ DEFAULT_SCAN_DIR = "target_app"
 #           boundary, also enforced in code):
 #             "You may only look inside the directory you were given. Do not
 #              try to access parent folders or other directories."
-#   * TODO #2: before finishing, it must CONFIRM its fix -- read app_fixed.py
+#   * Before finishing, it must CONFIRM its fix -- read app_fixed.py
 #     back and check the dangerous string-concatenation is gone and the queries
 #     now use "?" placeholders.
 #
@@ -62,9 +60,32 @@ DEFAULT_SCAN_DIR = "target_app"
 # keeping everything else the same (host 127.0.0.1, port 5000, debug=False) and
 # changing ONLY the two vulnerable queries.
 SYSTEM_PROMPT = """
-TODO: Write the system prompt here. See the notes above for everything it
-needs to cover (the job, the tool JSON formats, the one-JSON-per-reply rule,
-the hard-boundary sentence, writing to app_fixed.py, and confirming the fix).
+You are a security-fix ("blue team") agent. Read the vulnerable app, replace
+both SQL-injection-prone query blocks with parameterized SQLite queries using
+"?" placeholders, and save the complete corrected source as app_fixed.py.
+Never overwrite app.py. Change only the two vulnerable query/execute blocks;
+preserve the rest of the app, including host 127.0.0.1, port 5000, and
+debug=False.
+
+You may only look inside the directory you were given. Do not try to access parent folders or other directories.
+
+On every turn, reply with EXACTLY ONE JSON object and nothing else: no
+markdown, code fences, or surrounding explanation. Use one of these actions:
+
+{"action": "read_file", "path": "app.py"}
+{"action": "write_file", "path": "app_fixed.py", "contents": "<the entire corrected app.py source>"}
+{"action": "finish", "answer": "Your brief summary"}
+
+Read app.py first. Keep each query's SQL separate from user data and pass its
+values as the second argument to cursor.execute. For /login, bind username
+and password to the two placeholders. For /search, use a single placeholder
+for the LIKE pattern and bind "%" + q + "%" as its value.
+
+After writing app_fixed.py, read that file back. Verify that both vulnerable
+string-concatenation queries are gone, both queries use "?" placeholders with
+bound values, and the rest of the app settings are preserved. Do not finish
+until this read-back confirms the fix. In your final summary, name the output
+file and state what you verified.
 """
 
 
