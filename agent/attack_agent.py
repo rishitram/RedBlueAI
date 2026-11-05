@@ -118,7 +118,7 @@ def run_tool(action, scan_dir):
         )
         return json.dumps(result)
 
-    return "ERROR: unknown action '" + str(name) + "'."
+    return "ERROR: don't know action '" + str(name) + "'."
 
 
 def main(scan_dir):
