@@ -13,7 +13,7 @@ RedBlueAI uses AI-powered red-team and blue-team agents to detect, test, and rem
 - **Red-Team Agent:** Analyzes Python source code to detect SQL injection vulnerabilities and tests findings against a local Flask application.
 - **Blue-Team Agent:** Generates secure code fixes using parameterized SQL queries while preserving the original application.
 - **AI Agent Automation:** Uses Google Gemini with structured tool calls to automate vulnerability detection and remediation.
-- - **OWASP-Aligned Security Testing:** Detects and tests SQL injection vulnerabilities based on security risks covered by the OWASP Top 10, using AI agents to automate vulnerability identification and remediation.
+- **OWASP-Aligned Security Testing:** Detects and tests SQL injection vulnerabilities based on security risks covered by the OWASP Top 10, using AI agents to automate vulnerability identification and remediation.
 - **GitHub Actions CI/CD:** Automatically scans pull requests and posts security findings as PR comments.
 - **Restricted Tool Access:** Limits agent file operations to project directories and HTTP requests to localhost.
 - **Testing and Verification:** Supports comparing vulnerable and corrected application behavior to evaluate security fixes.
