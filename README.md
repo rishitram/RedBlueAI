@@ -4,7 +4,7 @@
 
 RedBlueAI uses AI-powered red-team and blue-team agents to detect, test, and remediate SQL injection vulnerabilities in a Flask/SQLite application. Built with Python, Google Gemini, and GitHub Actions, the project demonstrates automated security testing and AI-assisted code remediation.
 
-> 🚧 **Work in Progress:** RedBlueAI is under active development, with ongoing improvements to agent reliability, automated testing, and infrastructure.
+> 🚧 **Work in Progress:** RedBlueAI is under active development, with plans to expand beyond SQL injection to detect other security vulnerabilities, including improper exception handling, while improving agent reliability and automated testing.
 
 > **Security Notice:** The target application is intentionally vulnerable and must only be run locally in an authorized testing environment.
 
