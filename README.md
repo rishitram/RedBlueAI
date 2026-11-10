@@ -155,7 +155,3 @@ The CI/CD workflow in `.github/workflows/security-scan.yml` integrates automated
 
 The workflow requires an `LLM_API_KEY` repository secret and should only be enabled with appropriate permissions and secret protections.
 
-
-
-
-[GitHub](https://github.com/rishitram) | [Repository](https://github.com/rishitram/RedBlueAI)
