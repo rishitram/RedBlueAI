@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RedBlueAI</title>
+<meta name="description" content="AI red-team and blue-team agents that find, exploit, and fix SQL injection in a Flask/SQLite app.">
+<style>
+  :root {
+    --bg: #f7f8fa; --surface: #ffffff; --text: #16181d; --muted: #5b616e; --border: #e2e5ea;
+    --red: #d63b3b; --red-soft: #fdecec; --blue: #2563eb; --blue-soft: #e8efff;
+    --code-bg: #0f1115; --code-text: #e6e8ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d0f13; --surface: #161920; --text: #e8eaee; --muted: #9aa1ad; --border: #262a33;
+      --red: #f26464; --red-soft: #2a1618; --blue: #6b9bff; --blue-soft: #141d33;
+      --code-bg: #0a0b0e; --code-text: #e6e8ec;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+  a { color: var(--blue); }
+  header { padding: 72px 0 48px; border-bottom: 1px solid var(--border); }
+  .tag { display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: clamp(40px, 7vw, 64px); line-height: 1.05; margin: 8px 0 16px; letter-spacing: -0.02em; }
+  h1 .r { color: var(--red); } h1 .b { color: var(--blue); }
+  .lede { font-size: 19px; color: var(--muted); max-width: 640px; margin: 0 0 28px; }
+  .btns { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; font-weight: 600;
+    text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+  .btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+  h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 28px; max-width: 680px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+  .card h3 { margin: 0 0 8px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .card.red { border-top: 3px solid var(--red); } .card.blue { border-top: 3px solid var(--blue); }
+  pre { margin: 0; background: var(--code-bg); color: var(--code-text); padding: 16px; border-radius: 10px;
+    overflow-x: auto; font: 13.5px/1.55 ui-monospace, "Cascadia Code", Consolas, monospace; }
+  .label { font-size: 13px; font-weight: 700; margin: 0 0 8px; }
+  .label.red { color: var(--red); } .label.blue { color: var(--blue); }
+  .hl-bad { color: #ff8a8a; } .hl-good { color: #8ab4ff; } .hl-c { color: #7d8590; }
+  /* demo */
+  .demo { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .row label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .row > div { flex: 1 1 200px; }
+  input { width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font: 14px ui-monospace, Consolas, monospace; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip { font: 13px ui-monospace, Consolas, monospace; padding: 5px 10px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .chip:hover { border-color: var(--red); }
+  .toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+  .toggle button { padding: 8px 14px; border: 0; background: transparent; color: var(--muted); font-weight: 600; cursor: pointer; font-size: 14px; }
+  .toggle button.on-v { background: var(--red-soft); color: var(--red); }
+  .toggle button.on-f { background: var(--blue-soft); color: var(--blue); }
+  .verdict { margin-top: 12px; padding: 12px 14px; border-radius: 8px; font-weight: 600; font-size: 15px; }
+  .verdict.bad { background: var(--red-soft); color: var(--red); }
+  .verdict.good { background: var(--blue-soft); color: var(--blue); }
+  .note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .steps li { counter-increment: s; display: flex; gap: 14px; align-items: flex-start;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .steps li::before { content: counter(s); flex: none; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--text); color: var(--bg); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
+  .steps b { display: block; } .steps span { color: var(--muted); font-size: 15px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  td { padding: 10px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  td:first-child { color: var(--muted); width: 140px; padding-right: 16px; }
+  .warn { background: var(--red-soft); border: 1px solid var(--red); color: var(--text);
+    border-radius: 10px; padding: 14px 16px; font-size: 15px; }
+  footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="tag">AI security testing · OWASP A03: Injection</span>
+    <h1><span class="r">Red</span><span class="b">Blue</span>AI</h1>
+    <p class="lede">Two AI agents play attacker and defender. The red-team agent finds and exploits SQL injection in a Flask/SQLite app, and the blue-team agent rewrites the code with parameterized queries. It also runs on every pull request through GitHub Actions.</p>
+    <div class="btns">
+      <a class="btn primary" href="https://github.com/rishitram/RedBlueAI">View on GitHub</a>
+      <a class="btn" href="#demo">Try the demo</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="sub">Both agents run a tool-calling loop on Google Gemini through an OpenAI-compatible API. They can only use four tools, all of them sandboxed.</p>
+    <div class="grid">
+      <div class="card red">
+        <h3>Red-team agent</h3>
+        <p>Lists and reads the app's Python source, spots SQL built from user input, then sends real payloads to the local app to confirm that each finding can be exploited.</p>
+      </div>
+      <div class="card blue">
+        <h3>Blue-team agent</h3>
+        <p>Takes the findings and writes <code>app_fixed.py</code>, replacing string concatenation with <code>?</code> placeholders. The original file is left untouched so you can compare the two.</p>
+      </div>
+      <div class="card">
+        <h3>CI scanner</h3>
+        <p>A GitHub Actions workflow runs <code>ci_scan.py</code> on each pull request and posts the findings back as a PR comment.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <h2>See the bug</h2>
+    <p class="sub">This is the target app's <code>/login</code> query. Type something or pick a payload to see what SQL the database would actually receive, then switch to the fixed version.</p>
+    <div class="demo">
+      <div class="toggle" role="tablist">
+        <button id="tv" class="on-v" type="button">Vulnerable (app.py)</button>
+        <button id="tf" type="button">Fixed (app_fixed.py)</button>
+      </div>
+      <div class="row">
+        <div><label for="u">username</label><input id="u" value="admin' --" autocomplete="off" spellcheck="false"></div>
+        <div><label for="p">password</label><input id="p" value="anything" autocomplete="off" spellcheck="false"></div>
+      </div>
+      <div class="chips">
+        <button class="chip" type="button" data-u="alice" data-p="password123">normal login</button>
+        <button class="chip" type="button" data-u="admin' --" data-p="anything">admin' --</button>
+        <button class="chip" type="button" data-u="' OR '1'='1" data-p="' OR '1'='1">' OR '1'='1</button>
+        <button class="chip" type="button" data-u="x'" data-p="">x' (syntax error)</button>
+      </div>
+      <pre id="q"></pre>
+      <div id="v" class="verdict"></div>
+      <p class="note">This simulation runs entirely in your browser. No real database is involved, and the vulnerable app is never hosted online.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>The fix</h2>
+    <p class="sub">What the blue-team agent changes. With placeholders, the database treats input strictly as data, never as SQL.</p>
+    <div class="grid">
+      <div>
+        <p class="label red">Before: string concatenation</p>
+<pre><span class="hl-c"># target_app/app.py</span>
+query = (
+    "SELECT id, username, role FROM users "
+    "WHERE username = '<span class="hl-bad">" + username + "</span>' "
+    "AND password = '<span class="hl-bad">" + password + "</span>'"
+)
+cur.execute(query)</pre>
+      </div>
+      <div>
+        <p class="label blue">After: parameterized query</p>
+<pre><span class="hl-c"># target_app/app_fixed.py</span>
+query = (
+    "SELECT id, username, role FROM users "
+    "WHERE username = <span class="hl-good">?</span> AND password = <span class="hl-good">?</span>"
+)
+cur.execute(query, <span class="hl-good">(username, password)</span>)</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Built-in guardrails</h2>
+    <p class="sub">The agents are only given these tools, and every one of them enforces its own limits.</p>
+    <div class="grid">
+      <div class="card"><h3>list_files / read_file</h3><p>Paths are resolved inside the scan directory and the repo root. Any <code>..</code> or absolute path that escapes either one is refused.</p></div>
+      <div class="card"><h3>write_file</h3><p>Can only write inside the scan directory the agent was launched with.</p></div>
+      <div class="card"><h3>send_request</h3><p>Hard-locked to <code>http://127.0.0.1:5000</code>. The agent can't reach any other host.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Run it yourself</h2>
+    <p class="sub">The target app is intentionally vulnerable, so the full system only runs locally.</p>
+    <ol class="steps">
+      <li><div><b>Clone and install</b><span><code>git clone https://github.com/rishitram/RedBlueAI.git</code> → <code>pip install -r requirements.txt</code></span></div></li>
+      <li><div><b>Add your LLM key</b><span>Set <code>LLM_API_KEY</code>, <code>LLM_BASE_URL</code> and <code>LLM_MODEL</code> in a <code>.env</code> file</span></div></li>
+      <li><div><b>Start the target app</b><span><code>python target_app/app.py</code> (binds to localhost only)</span></div></li>
+      <li><div><b>Attack, then defend</b><span><code>python agent/attack_agent.py</code>, then <code>python agent/defense_agent.py</code></span></div></li>
+    </ol>
+    <p class="warn" style="margin-top:20px"><b>Security notice:</b> <code>target_app/app.py</code> is broken by design, in the same spirit as OWASP Juice Shop. Never deploy it to a public server.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Tech stack</h2>
+    <table>
+      <tr><td>Languages</td><td>Python, SQL</td></tr>
+      <tr><td>AI</td><td>Google Gemini through an OpenAI-compatible API, with tool calling</td></tr>
+      <tr><td>Backend</td><td>Flask, SQLite (in-memory)</td></tr>
+      <tr><td>CI/CD</td><td>GitHub Actions, automated PR comments</td></tr>
+      <tr><td>Security</td><td>SQL injection, parameterized queries, sandboxed agent tools</td></tr>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    RedBlueAI by <a href="https://github.com/rishitram">rishitram</a> · Work in progress: support for more vulnerability classes is planned.
+  </div>
+</footer>
+
+<script>
+  const u = document.getElementById('u'), p = document.getElementById('p');
+  const q = document.getElementById('q'), v = document.getElementById('v');
+  const tv = document.getElementById('tv'), tf = document.getElementById('tf');
+  let fixed = false;
+
+  const users = [
+    { username: 'admin', password: 'supersecret', role: 'admin' },
+    { username: 'alice', password: 'password123', role: 'user' },
+    { username: 'bob', password: 'hunter2', role: 'user' },
+  ];
+  const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+  // Simple model of how SQLite would interpret the injected query.
+  function simulateVulnerable(un, pw) {
+    const sql = "WHERE username = '" + un + "' AND password = '" + pw + "'";
+    const quotes = (sql.match(/'/g) || []).length;
+    const commentAt = sql.indexOf('--');
+    const active = commentAt >= 0 ? sql.slice(0, commentAt) : sql;
+    if (((active.match(/'/g) || []).length) % 2 !== 0) return { err: 'unrecognized token / unterminated string' };
+    if (/OR\s+'1'\s*=\s*'1/i.test(active)) return { row: users[0], how: "the OR '1'='1' condition is always true, so the first user (admin) is returned" };
+    if (commentAt >= 0) {
+      const m = active.match(/username = '([^']*)'/);
+      const hit = m && users.find(x => x.username === m[1]);
+      if (hit) return { row: hit, how: "-- comments out the password check entirely" };
+    }
+    const hit = users.find(x => x.username === un && x.password === pw);
+    return hit ? { row: hit, how: 'valid credentials' } : { row: null };
+  }
+
+  function render() {
+    const un = u.value, pw = p.value;
+    tv.className = fixed ? '' : 'on-v';
+    tf.className = fixed ? 'on-f' : '';
+    if (!fixed) {
+      q.innerHTML = 'SELECT id, username, role FROM users\nWHERE username = \'<span class="hl-bad">' + esc(un) +
+        '</span>\' AND password = \'<span class="hl-bad">' + esc(pw) + '</span>\'';
+      const r = simulateVulnerable(un, pw);
+      if (r.err) { v.className = 'verdict bad'; v.textContent = 'SQL error leaked to the attacker: ' + r.err + '. The input broke out of the string.'; }
+      else if (r.row && r.how !== 'valid credentials') { v.className = 'verdict bad'; v.textContent = 'Logged in as "' + r.row.username + '" (role: ' + r.row.role + ') without the password. ' + r.how[0].toUpperCase() + r.how.slice(1) + '.'; }
+      else if (r.row) { v.className = 'verdict good'; v.textContent = 'Logged in as "' + r.row.username + '" with valid credentials.'; }
+      else { v.className = 'verdict good'; v.textContent = 'Invalid credentials (401).'; }
+    } else {
+      q.innerHTML = 'SELECT id, username, role FROM users\nWHERE username = <span class="hl-good">?</span> AND password = <span class="hl-good">?</span>\n\n<span class="hl-c">-- bound parameters (treated as plain text):</span>\n<span class="hl-c">-- ?1 = </span><span class="hl-good">' + esc(JSON.stringify(un)) + '</span>\n<span class="hl-c">-- ?2 = </span><span class="hl-good">' + esc(JSON.stringify(pw)) + '</span>';
+      const hit = users.find(x => x.username === un && x.password === pw);
+      v.className = 'verdict good';
+      v.textContent = hit ? 'Logged in as "' + hit.username + '" with valid credentials.'
+        : 'Invalid credentials (401). The payload was compared as a literal string, so the injection failed.';
+    }
+  }
+
+  u.addEventListener('input', render); p.addEventListener('input', render);
+  tv.addEventListener('click', () => { fixed = false; render(); });
+  tf.addEventListener('click', () => { fixed = true; render(); });
+  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    u.value = c.dataset.u; p.value = c.dataset.p; render();
+  }));
+  render();
+</script>
+</body>
+</html>
