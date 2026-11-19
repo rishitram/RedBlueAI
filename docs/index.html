@@ -28,7 +28,7 @@
     text-transform: uppercase; color: var(--muted); }
   h1 { font-size: clamp(40px, 7vw, 64px); line-height: 1.05; margin: 8px 0 16px; letter-spacing: -0.02em; }
   h1 .r { color: var(--red); } h1 .b { color: var(--blue); }
-  .lede { font-size: 19px; color: var(--muted); max-width: 640px; margin: 0 0 28px; }
+  .lede { font-size: 19px; color: var(--muted); max-width: 760px; margin: 0 0 28px; }
   .btns { display: flex; gap: 12px; flex-wrap: wrap; }
   .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; font-weight: 600;
     text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
@@ -71,11 +71,16 @@
   .steps li::before { content: counter(s); flex: none; width: 28px; height: 28px; border-radius: 50%;
     background: var(--text); color: var(--bg); display: grid; place-items: center; font-weight: 700; font-size: 14px; }
   .steps b { display: block; } .steps span { color: var(--muted); font-size: 15px; }
+  .steps li > div { min-width: 0; overflow-wrap: anywhere; }
   table { width: 100%; border-collapse: collapse; font-size: 15px; }
   td { padding: 10px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
   td:first-child { color: var(--muted); width: 140px; padding-right: 16px; }
   .warn { background: var(--red-soft); border: 1px solid var(--red); color: var(--text);
     border-radius: 10px; padding: 14px 16px; font-size: 15px; }
+  .wip { display: flex; gap: 10px; align-items: flex-start; margin: 32px 0 0; max-width: 760px;
+    padding: 14px 16px; border-radius: 10px; font-size: 15px;
+    background: #fff7e0; border: 1px solid #f0c94a; color: var(--text); }
+  @media (prefers-color-scheme: dark) { .wip { background: #2a2310; border-color: #8a6d1a; } }
   footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
 </style>
 </head>
@@ -90,6 +95,7 @@
       <a class="btn primary" href="https://github.com/rishitram/RedBlueAI">View on GitHub</a>
       <a class="btn" href="#demo">Try the demo</a>
     </div>
+    <p class="wip"><span aria-hidden="true">🚧</span> <span><b>Work in Progress:</b> RedBlueAI is under active development, with plans to expand beyond SQL injection to detect other security vulnerabilities, including improper exception handling, while improving agent reliability and automated testing.</span></p>
   </div>
 </header>
 
@@ -209,8 +215,7 @@ cur.execute(query, <span class="hl-good">(username, password)</span>)</pre>
 
 <footer>
   <div class="wrap">
-    RedBlueAI by <a href="https://github.com/rishitram">rishitram</a> · Work in progress: support for more vulnerability classes is planned.
-  </div>
+    RedBlueAI by <a href="https://github.com/rishitram">rishitram</a>  </div>
 </footer>
 
 <script>
